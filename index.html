@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>সাব মিটার বিল ক্যালকুলেটর (Excel Export + Save)</title>
+<link rel="stylesheet" href="styles.css" />
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<h2>সাব মিটার বিল ক্যালকুলেটর</h2>
+
+<label for="mainPrev">গত মাসের মেইন মিটার রিডিং (kWh)</label>
+<input type="number" id="mainPrev" min="0" step="any" placeholder="যেমন: 12500" />
+
+<label for="mainCurr">বর্তমান মাসের মেইন মিটার রিডিং (kWh)</label>
+<input type="number" id="mainCurr" min="0" step="any" placeholder="যেমন: 13500" />
+
+<label for="totalBill">মোট বিল (টাকা) [ট্যাক্স, ডিমান্ড চার্জ সহ]</label>
+<input type="number" id="totalBill" min="0" step="any" placeholder="যেমন: 10400" />
+
+<div class="flex-row">
+  <button id="addMeterBtn">নতুন সাব মিটার যুক্ত করুন</button>
+  <button id="calculateBtn">বিল ক্যালকুলেট করুন</button>
+  <button id="exportBtn">এক্সেল এক্সপোর্ট করুন</button>
+</div>
+
+<div id="metersContainer"></div>
+
+<div id="errorMsg"></div>
+<div id="result"></div>
+
+<footer>©️ Fazly Rabbi 2025</footer>
+
+<script src="script.js"></script>
+
+</body>
+</html>
