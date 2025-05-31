@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>সাব মিটার বিল ক্যালকুলেটর (Excel Export + Save)</title>
+<style>
+  body {
+    font-family: 'SolaimanLipi', Arial, sans-serif;
+    max-width: 700px;
+    margin: 30px auto 60px;
+    background: #f9f9f9;
+    padding: 20px 25px 40px;
+    border-radius: 10px;
+    box-shadow: 0 0 15px #bbb;
+    position: relative;
+    min-height: 90vh;
+  }
+  h2 {
+    font-family: 'SolaimanLipi', Arial, sans-serif;
+    font-weight: 700;
+    font-size: 2.5rem;
+    color: #007acc;
+    text-align: center;
+    border-bottom: 4px solid #007acc;
+    padding-bottom: 10px;
+    margin-bottom: 30px;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+  }
+  label {
+    display: block;
+    margin-top: 15px;
+    font-weight: 600;
+    color: #111;
+  }
+  input[type="number"], input[type="text"] {
+    width: 100%;
+    padding: 8px 10px;
+    margin-top: 6px;
+    font-size: 1em;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    box-sizing: border-box;
+  }
+  .flex-row {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 15px;
+    margin-top: 20px;
+  }
+  .flex-row button {
+    margin: 0 !important;
+    width: 100%;
+    padding: 14px 0;
+    font-size: 1.1em;
+    border-radius: 8px;
+    cursor: pointer;
+    background: #007acc;
+    color: white;
+    border: none;
+    transition: background-color 0.3s ease;
+  }
+  .flex-row button:hover {
+    background: #005fa3;
+  }
+  .meter-container {
+    background: #fff;
+    border: 1px solid #ddd;
+    padding: 15px 15px 10px;
+    margin-top: 20px;
+    border-radius: 8px;
+    position: relative;
+  }
+  .remove-meter {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #b00020;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 0.9em;
+  }
+  .remove-meter:hover {
+    background: #7a0015;
+  }
+  #result {
+    margin-top: 30px;
+    background: #e0f0ff;
+    padding: 20px;
+    border-radius: 10px;
+    font-weight: 600;
+    color: #004080;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    max-height: 250px;
+    overflow-y: auto;
+  }
+  #errorMsg {
+    margin-top: 20px;
+    color: #b00020;
+    font-weight: 700;
+  }
+  footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: #007acc;
+    color: white !important;
+    text-align: center;
+    padding: 10px 0;
+    font-weight: 600;
+    font-family: Arial, sans-serif;
+    user-select: none;
+  }
+  @media (max-width: 600px) {
+    body {
+      padding: 15px 15px 60px;
+      margin: 15px auto 70px;
+    }
+    input[type="number"], input[type="text"] {
+      font-size: 1.1em;
+      padding: 10px 12px;
+    }
+    .flex-row button {
+      font-size: 1.2em;
+      padding: 16px 0;
+    }
+    .meter-container {
+      padding: 15px 12px 15px;
+    }
+    .remove-meter {
+      top: 8px;
+      right: 8px;
+      padding: 6px 10px;
+      font-size: 0.85em;
+    }
+    #result {
+      font-size: 1em;
+      max-height: 300px;
+    }
+    #errorMsg {
+      font-size: 1.05em;
+    }
+    footer {
+      font-size: 1em;
+      padding: 14px 0;
+    }
+  }
+</style>
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<h2>সাব মিটার বিল ক্যালকুলেটর</h2>
+
+<label for="mainPrev">গত মাসের মেইন মিটার রিডিং (kWh)</label>
+<input type="number" id="mainPrev" min="0" step="any" placeholder="যেমন: 12500" />
+
+<label for="mainCurr">বর্তমান মাসের মেইন মিটার রিডিং (kWh)</label>
+<input type="number" id="mainCurr" min="0" step="any" placeholder="যেমন: 13500" />
+
+<label for="totalBill">মোট বিল (টাকা) [ভ্যাট, ডিমান্ড চার্জ,মিটার ভাড়া সহ]</label>
+<input type="number" id="totalBill" min="0" step="any" placeholder="যেমন: 10400" />
+
+<div class="flex-row">
+  <button id="addMeterBtn">নতুন সাব মিটার যুক্ত করুন</button>
+  <button onclick="calculateBills()">বিল ক্যালকুলেট করুন</button>
+  <button onclick="exportToExcelXLSX()">এক্সেল এক্সপোর্ট করুন</button>
+</div>
+
+<div id="metersContainer"></div>
+
+<div id="errorMsg"></div>
+<div id="result"></div>
+
+<footer>©️ Fazly Rabbi 2025</footer>
+
+<script>
+  let meterCount = 0;
+
+  function createMeterInput(name = '', prev = '', curr = '', index = 1) {
+    meterCount++;
+    const container = document.createElement('div');
+    container.className = 'meter-container';
+    container.id = 'meter-' + meterCount;
+
+    const meterName = name.trim() === '' ? `সাব মিটার ${index}` : name;
+
+    container.innerHTML = `
+      <button type="button" class="remove-meter" onclick="removeMeter('${container.id}')">বাতিল</button>
+      <label>সাব মিটার নাম</label>
+      <input type="text" class="meter-name" placeholder="যেমন: অফিস, ফ্ল্যাট ১" value="${meterName}" />
+
+      <label>গত মাসের রিডিং (kWh)</label>
+      <input type="number" min="0" step="any" class="meter-prev" placeholder="যেমন: 5000" value="${prev}" />
+
+      <label>বর্তমান মাসের রিডিং (kWh)</label>
+      <input type="number" min="0" step="any" class="meter-curr" placeholder="যেমন: 5400" value="${curr}" />
+    `;
+    return container;
+  }
+
+  function addMeter() {
+    const metersContainer = document.getElementById('metersContainer');
+    const count = metersContainer.children.length + 1;
+    metersContainer.appendChild(createMeterInput('', '', '', count));
+    saveData();
+  }
+
+  function removeMeter(id) {
+    const el = document.getElementById(id);
+    if (el) {
+      el.remove();
+      saveData();
+    }
+  }
+
+  document.getElementById('addMeterBtn').addEventListener('click', () => {
+    addMeter();
+  });
+
+  function saveData() {
+    const mainPrev = document.getElementById('mainPrev').value;
+    const mainCurr = document.getElementById('mainCurr').value;
+    const totalBill = document.getElementById('totalBill').value;
+
+    const metersContainer = document.getElementById('metersContainer');
+    const meterNames = [...metersContainer.getElementsByClassName('meter-name')];
+    const meterPrev = [...metersContainer.getElementsByClassName('meter-prev')];
+    const meterCurr = [...metersContainer.getElementsByClassName('meter-curr')];
+
+    let meters = [];
+
+    for (let i = 0; i < meterNames.length; i++) {
+      meters.push({
+        name: meterNames[i].value,
+        prev: meterPrev[i].value,
+        curr: meterCurr[i].value
+      });
+    }
+
+    const data = {
+      mainPrev,
+      mainCurr,
+      totalBill,
+      meters
+    };
+
+    localStorage.setItem('subMeterCalcData', JSON.stringify(data));
+  }
+
+  function loadData() {
+    const savedData = localStorage.getItem('subMeterCalcData');
+    const metersContainer = document.getElementById('metersContainer');
+    metersContainer.innerHTML = '';
+
+    if (!savedData) {
+      addMeter();
+      addMeter();
+      addMeter();
+      return;
+    }
+
+    const data = JSON.parse(savedData);
+    document.getElementById('mainPrev').value = data.mainPrev || '';
+    document.getElementById('mainCurr').value = data.mainCurr || '';
+    document.getElementById('totalBill').value = data.totalBill || '';
+
+    if (data.meters && data.meters.length > 0) {
+      data.meters.forEach((m, i) => {
+        metersContainer.appendChild(createMeterInput(m.name, m.prev, m.curr, i + 1));
+      });
+    } else {
+      addMeter();
+      addMeter();
+      addMeter();
+    }
+  }
+
+  function calculateBills() {
+    document.getElementById('errorMsg').innerText = '';
+    document.getElementById('result').innerText = '';
+
+    const mainPrev = parseFloat(document.getElementById('mainPrev').value);
+    const mainCurr = parseFloat(document.getElementById('mainCurr').value);
+    const totalBill = parseFloat(document.getElementById('totalBill').value);
+
+    if (isNaN(mainPrev) || isNaN(mainCurr) || isNaN(totalBill)) {
+      document.getElementById('errorMsg').innerText = 'অনুগ্রহ করে মেইন মিটার এবং মোট বিলের সব ফিল্ড সঠিকভাবে পূরণ করুন।';
+      return;
+    }
+    if (mainCurr < mainPrev) {
+      document.getElementById('errorMsg').innerText = 'বর্তমান মাসের মেইন রিডিং অবশ্যই গত মাসের থেকে বড় হতে হবে!';
+      return;
+    }
+
+    const mainUnits = mainCurr - mainPrev;
+
+    const metersContainer = document.getElementById('metersContainer');
+    const meterNames = [...metersContainer.getElementsByClassName('meter-name')];
+    const meterPrev = [...metersContainer.getElementsByClassName('meter-prev')];
+    const meterCurr = [...metersContainer.getElementsByClassName('meter-curr')];
+
+    let totalSubUnits = 0;
+    let metersData = [];
+
+    for (let i = 0; i < meterNames.length; i++) {
+      const name = meterNames[i].value.trim() || `সাব মিটার ${i + 1}`;
+      const prev = parseFloat(meterPrev[i].value);
+      const curr = parseFloat(meterCurr[i].value);
+
+      if (isNaN(prev) || isNaN(curr)) {
+        document.getElementById('errorMsg').innerText = `সাব মিটার "${name}" এর রিডিং পূরণ করুন।`;
+        return;
+      }
+      if (curr < prev) {
+        document.getElementById('errorMsg').innerText = `সাব মিটার "${name}" এর বর্তমান রিডিং অবশ্যই গত মাসের থেকে বড় হতে হবে!`;
+        return;
+      }
+
+      const units = curr - prev;
+      totalSubUnits += units;
+
+      metersData.push({ name, units });
+    }
+
+    if (Math.abs(mainUnits - totalSubUnits) > 0.01) {
+      document.getElementById('errorMsg').innerText = `⚠️ সতর্কতা: মেইন মিটার ইউনিট (${mainUnits.toFixed(2)}) এবং সাব মিটার ইউনিটের যোগফল (${totalSubUnits.toFixed(2)}) মিলছে না।`;
+    } else {
+      document.getElementById('errorMsg').innerText = '';
+    }
+
+    const unitCost = totalBill / mainUnits;
+
+    let totalCalculatedBill = 0;
+    let resultText = `মেইন মিটার ব্যবহার: ${mainUnits.toFixed(2)} kWh\n\n`;
+
+    metersData.forEach(meter => {
+      const bill = meter.units * unitCost;
+      totalCalculatedBill += bill;
+      resultText += `${meter.name} ব্যবহার: ${meter.units.toFixed(2)} kWh → বিল: ${bill.toFixed(2)} টাকা\n`;
+    });
+
+    resultText += `\nমোট বিল দেওয়া হয়েছে: ${totalBill.toFixed(2)} টাকা\n`;
+    resultText += `হিসাবকৃত মোট বিল: ${totalCalculatedBill.toFixed(2)} টাকা\n`;
+
+    if (Math.abs(totalBill - totalCalculatedBill) > 1) {
+      if (Math.abs(mainUnits - totalSubUnits) > 0.01) {
+        resultText += `\n⚠️ সতর্কতা: ${(mainUnits - totalSubUnits).toFixed(2)} ইউনিট এর দাম ${(unitCost * (mainUnits - totalSubUnits)).toFixed(2)} টাকা মেইন মিটার থেকে দেয়া হয়েছে। অনুগ্রহ করে সঠিক ভাবে ইউনিট ইনপুট করুন।`;
+      } else {
+        resultText += `\n⚠️ সতর্কতা: দেওয়া মোট বিল এবং হিসাবকৃত মোট বিলের মধ্যে পার্থক্য রয়েছে!`;
+      }
+    }
+
+    document.getElementById('result').innerText = resultText;
+
+    saveData();
+  }
+
+  function getFileName() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const h = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+    const s = String(now.getSeconds()).padStart(2, '0');
+
+    return `submeter_bill_${y}${m}${d}_${h}${min}${s}.xlsx`;
+  }
+
+  function exportToExcelXLSX() {
+    const mainPrev = parseFloat(document.getElementById('mainPrev').value);
+    const mainCurr = parseFloat(document.getElementById('mainCurr').value);
+    const totalBill = parseFloat(document.getElementById('totalBill').value);
+
+    const metersContainer = document.getElementById('metersContainer');
+    const meterNames = [...metersContainer.getElementsByClassName('meter-name')];
+    const meterPrev = [...metersContainer.getElementsByClassName('meter-prev')];
+    const meterCurr = [...metersContainer.getElementsByClassName('meter-curr')];
+
+    let totalSubUnits = 0;
+
+    let data = [
+      ['মেইন মিটার গত মাসের রিডিং', 'মেইন মিটার বর্তমান মাসের রিডিং', 'মোট বিল (টাকা)'],
+      [mainPrev, mainCurr, totalBill],
+      [],
+      ['সাব মিটার নাম', 'গত মাসের রিডিং (kWh)', 'বর্তমান মাসের রিডিং (kWh)', 'ইউনিট (kWh)', 'বিল (টাকা)']
+    ];
+
+    const mainUnits = mainCurr - mainPrev;
+    const unitCost = totalBill / mainUnits;
+
+    for (let i = 0; i < meterNames.length; i++) {
+      const name = meterNames[i].value.trim() || `সাব মিটার ${i + 1}`;
+      const prev = parseFloat(meterPrev[i].value);
+      const curr = parseFloat(meterCurr[i].value);
+      const units = curr - prev;
+      totalSubUnits += units;
+      const bill = units * unitCost;
+
+      data.push([name, prev, curr, units.toFixed(2), bill.toFixed(2)]);
+    }
+
+    let warningText = "";
+    if (Math.abs(mainUnits - totalSubUnits) > 0.01) {
+      warningText = `⚠️ সতর্কতা: ${(mainUnits - totalSubUnits).toFixed(2)} ইউনিট এর দাম ${(unitCost * (mainUnits - totalSubUnits)).toFixed(2)} টাকা মেইন মিটার থেকে দেয়া হয়েছে। অনুগ্রহ করে সঠিক ভাবে ইউনিট ইনপুট করুন।`;
+    }
+
+    if (warningText) {
+      data.push([]);
+      data.push([warningText]);
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(data);
+
+    if (warningText) {
+      const lastRow = data.length;
+      const cellRef = `A${lastRow}`;
+      if (!ws[cellRef]) ws[cellRef] = { t: 's', v: warningText };
+      ws[cellRef].s = {
+        font: {
+          color: { rgb: "FF0000" },
+          bold: true,
+        }
+      };
+    }
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'সাব মিটার বিল');
+
+    XLSX.writeFile(wb, getFileName());
+  }
+
+  window.onload = loadData;
+</script>
+
+</body>
+</html>
