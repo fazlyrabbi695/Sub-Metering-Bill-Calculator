@@ -1,6 +1,16 @@
+// ফাংশন যা দুইটি তারিখ থেকে মোট দিন হিসাব করবে
+function calculateDays(startDate, endDate) {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const timeDiff = end - start;
+  const daysDiff = timeDiff / (1000 * 3600 * 24); // মিলিসেকেন্ড থেকে দিন হিসাব করা হচ্ছে
+  return daysDiff;
+}
+
 let meterCount = 0;
 
-function createMeterInput(name = '', prev = '', curr = '', index = 1) {
+// সাব মিটার ইনপুট তৈরি করা
+function createMeterInput(name = '', prev = '', curr = '', index = 1, prevDate = '', currDate = '') {
   meterCount++;
   const container = document.createElement('div');
   container.className = 'meter-container';
@@ -13,8 +23,14 @@ function createMeterInput(name = '', prev = '', curr = '', index = 1) {
     <label>সাব মিটার নাম</label>
     <input type="text" class="meter-name" placeholder="যেমন: অফিস, ফ্ল্যাট ১" value="${meterName}" />
 
+    <label>গত মাসের রিডিং (kWh) - তারিখ নির্বাচন করুন</label>
+    <input type="date" class="meter-prev-date" value="${prevDate}" />
+
     <label>গত মাসের রিডিং (kWh)</label>
     <input type="number" min="0" step="any" class="meter-prev" placeholder="যেমন: 5000" value="${prev}" />
+
+    <label>বর্তমান মাসের রিডিং (kWh) - তারিখ নির্বাচন করুন</label>
+    <input type="date" class="meter-curr-date" value="${currDate}" />
 
     <label>বর্তমান মাসের রিডিং (kWh)</label>
     <input type="number" min="0" step="any" class="meter-curr" placeholder="যেমন: 5400" value="${curr}" />
@@ -22,13 +38,15 @@ function createMeterInput(name = '', prev = '', curr = '', index = 1) {
   return container;
 }
 
+// নতুন সাব মিটার যোগ করা
 function addMeter() {
   const metersContainer = document.getElementById('metersContainer');
   const count = metersContainer.children.length + 1;
-  metersContainer.appendChild(createMeterInput('', '', '', count));
+  metersContainer.appendChild(createMeterInput('', '', '', count, '', ''));  // Default empty date
   saveData();
 }
 
+// সাব মিটার মুছে ফেলা
 function removeMeter(id) {
   const el = document.getElementById(id);
   if (el) {
@@ -49,15 +67,20 @@ document.getElementById('exportBtn').addEventListener('click', () => {
   exportToExcelXLSX();
 });
 
+// ইনপুট ডাটা সেভ করা
 function saveData() {
   const mainPrev = document.getElementById('mainPrev').value;
   const mainCurr = document.getElementById('mainCurr').value;
   const totalBill = document.getElementById('totalBill').value;
+  const mainPrevDate = document.getElementById('mainPrevDate').value;
+  const mainCurrDate = document.getElementById('mainCurrDate').value;
 
   const metersContainer = document.getElementById('metersContainer');
   const meterNames = [...metersContainer.getElementsByClassName('meter-name')];
   const meterPrev = [...metersContainer.getElementsByClassName('meter-prev')];
   const meterCurr = [...metersContainer.getElementsByClassName('meter-curr')];
+  const meterPrevDates = [...metersContainer.getElementsByClassName('meter-prev-date')];
+  const meterCurrDates = [...metersContainer.getElementsByClassName('meter-curr-date')];
 
   let meters = [];
 
@@ -65,7 +88,9 @@ function saveData() {
     meters.push({
       name: meterNames[i].value,
       prev: meterPrev[i].value,
-      curr: meterCurr[i].value
+      curr: meterCurr[i].value,
+      prevDate: meterPrevDates[i].value,
+      currDate: meterCurrDates[i].value
     });
   }
 
@@ -73,12 +98,15 @@ function saveData() {
     mainPrev,
     mainCurr,
     totalBill,
+    mainPrevDate,
+    mainCurrDate,
     meters
   };
 
   localStorage.setItem('subMeterCalcData', JSON.stringify(data));
 }
 
+// সেভ করা ডাটা লোড করা
 function loadData() {
   const savedData = localStorage.getItem('subMeterCalcData');
   const metersContainer = document.getElementById('metersContainer');
@@ -98,7 +126,7 @@ function loadData() {
 
   if (data.meters && data.meters.length > 0) {
     data.meters.forEach((m, i) => {
-      metersContainer.appendChild(createMeterInput(m.name, m.prev, m.curr, i + 1));
+      metersContainer.appendChild(createMeterInput(m.name, m.prev, m.curr, i + 1, m.prevDate, m.currDate));
     });
   } else {
     addMeter();
@@ -107,6 +135,7 @@ function loadData() {
   }
 }
 
+// ক্যালকুলেশন করা
 function calculateBills() {
   document.getElementById('errorMsg').innerText = '';
   document.getElementById('result').innerText = '';
@@ -114,6 +143,10 @@ function calculateBills() {
   const mainPrev = parseFloat(document.getElementById('mainPrev').value);
   const mainCurr = parseFloat(document.getElementById('mainCurr').value);
   const totalBill = parseFloat(document.getElementById('totalBill').value);
+  const mainPrevDate = document.getElementById('mainPrevDate').value;
+  const mainCurrDate = document.getElementById('mainCurrDate').value;
+
+  const totalDays = calculateDays(mainPrevDate, mainCurrDate);
 
   if (isNaN(mainPrev) || isNaN(mainCurr) || isNaN(totalBill)) {
     document.getElementById('errorMsg').innerText = 'অনুগ্রহ করে মেইন মিটার এবং মোট বিলের সব ফিল্ড সঠিকভাবে পূরণ করুন।';
@@ -173,6 +206,8 @@ function calculateBills() {
 
   resultText += `\nমোট বিল দেওয়া হয়েছে: ${totalBill.toFixed(2)} টাকা\n`;
   resultText += `হিসাবকৃত মোট বিল: ${totalCalculatedBill.toFixed(2)} টাকা\n`;
+  resultText += `মোট দিন: ${totalDays} দিন`;
+  resultText += `\nপ্রতি ইউনিট বিদ্যুৎ এর দাম: ${unitCost.toFixed(2)} টাকা`;
 
   if (Math.abs(totalBill - totalCalculatedBill) > 1) {
     if (Math.abs(mainUnits - totalSubUnits) > 0.01) {
@@ -187,6 +222,7 @@ function calculateBills() {
   saveData();
 }
 
+// এক্সপোর্ট ফাইল নাম জেনারেট করা
 function getFileName() {
   const now = new Date();
   const y = now.getFullYear();
@@ -199,6 +235,7 @@ function getFileName() {
   return `submeter_bill_${y}${m}${d}_${h}${min}${s}.xlsx`;
 }
 
+// এক্সপোর্ট ফাইল তৈরি এবং ডাউনলোড করা
 function exportToExcelXLSX() {
   const mainPrev = parseFloat(document.getElementById('mainPrev').value);
   const mainCurr = parseFloat(document.getElementById('mainCurr').value);
@@ -212,8 +249,8 @@ function exportToExcelXLSX() {
   let totalSubUnits = 0;
 
   let data = [
-    ['মেইন মিটার গত মাসের রিডিং', 'মেইন মিটার বর্তমান মাসের রিডিং', 'মোট বিল (টাকা)'],
-    [mainPrev, mainCurr, totalBill],
+    ['মেইন মিটার গত মাসের রিডিং', 'মেইন মিটার বর্তমান মাসের রিডিং', 'মোট বিল (টাকা)', 'মোট দিন', 'প্রতি ইউনিট বিদ্যুৎ এর দাম'],
+    [mainPrev, mainCurr, totalBill, calculateDays(document.getElementById('mainPrevDate').value, document.getElementById('mainCurrDate').value), (totalBill / (mainCurr - mainPrev)).toFixed(2)],
     [],
     ['সাব মিটার নাম', 'গত মাসের রিডিং (kWh)', 'বর্তমান মাসের রিডিং (kWh)', 'ইউনিট (kWh)', 'বিল (টাকা)']
   ];

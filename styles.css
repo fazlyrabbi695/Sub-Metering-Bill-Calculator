@@ -9,6 +9,7 @@ body {
   position: relative;
   min-height: 90vh;
 }
+
 h2 {
   font-family: 'SolaimanLipi', Arial, sans-serif;
   font-weight: 700;
@@ -20,13 +21,15 @@ h2 {
   margin-bottom: 30px;
   text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
 }
+
 label {
   display: block;
   margin-top: 15px;
   font-weight: 600;
   color: #111;
 }
-input[type="number"], input[type="text"] {
+
+input[type="number"], input[type="text"], input[type="date"] {
   width: 100%;
   padding: 8px 10px;
   margin-top: 6px;
@@ -35,6 +38,7 @@ input[type="number"], input[type="text"] {
   border-radius: 6px;
   box-sizing: border-box;
 }
+
 .flex-row {
   display: flex;
   flex-direction: column;
@@ -42,6 +46,7 @@ input[type="number"], input[type="text"] {
   gap: 15px;
   margin-top: 20px;
 }
+
 .flex-row button {
   margin: 0 !important;
   width: 100%;
@@ -54,9 +59,11 @@ input[type="number"], input[type="text"] {
   border: none;
   transition: background-color 0.3s ease;
 }
+
 .flex-row button:hover {
   background: #005fa3;
 }
+
 .meter-container {
   background: #fff;
   border: 1px solid #ddd;
@@ -65,6 +72,7 @@ input[type="number"], input[type="text"] {
   border-radius: 8px;
   position: relative;
 }
+
 .remove-meter {
   position: absolute;
   top: 10px;
@@ -77,9 +85,11 @@ input[type="number"], input[type="text"] {
   cursor: pointer;
   font-size: 0.9em;
 }
+
 .remove-meter:hover {
   background: #7a0015;
 }
+
 #result {
   margin-top: 30px;
   background: #e0f0ff;
@@ -92,11 +102,13 @@ input[type="number"], input[type="text"] {
   max-height: 250px;
   overflow-y: auto;
 }
+
 #errorMsg {
   margin-top: 20px;
   color: #b00020;
   font-weight: 700;
 }
+
 footer {
   position: fixed;
   bottom: 0;
@@ -116,30 +128,37 @@ footer {
     padding: 15px 15px 60px;
     margin: 15px auto 70px;
   }
-  input[type="number"], input[type="text"] {
+  
+  input[type="number"], input[type="text"], input[type="date"] {
     font-size: 1.1em;
     padding: 10px 12px;
   }
+  
   .flex-row button {
     font-size: 1.2em;
     padding: 16px 0;
   }
+  
   .meter-container {
     padding: 15px 12px 15px;
   }
+
   .remove-meter {
     top: 8px;
     right: 8px;
     padding: 6px 10px;
     font-size: 0.85em;
   }
+
   #result {
     font-size: 1em;
     max-height: 300px;
   }
+  
   #errorMsg {
     font-size: 1.05em;
   }
+
   footer {
     font-size: 1em;
     padding: 14px 0;
